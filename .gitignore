@@ -1,0 +1,14 @@
+# Python junk
+__pycache__/
+*.pyc
+
+# Virtual environment
+venv/
+
+# Audio files
+*.wav
+*.mp3
+
+# Generated audio folders
+clear_audio/clips/
+muffled_audio/clips/
