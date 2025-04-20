@@ -12,3 +12,4 @@ venv/
 # Generated audio folders
 clear_audio/clips/
 muffled_audio/clips/
+embedding_cache

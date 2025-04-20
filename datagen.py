@@ -3,61 +3,78 @@ import librosa
 import soundfile as sf
 import scipy.signal
 import numpy as np
-import IPython.display as ipd  # Only works in Jupyter or IPython
-import matplotlib.pyplot as plt
+import random
 
 INPUT_DIR = 'clear_audio/clips'
 OUTPUT_DIR = 'muffled_audio/clips'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-LOWPASS_CUTOFF = 1000  # Hz, lower = more muffled
-FILTER_ORDER = 14      # Higher = steeper filter
-REVERB_DECAY = 0.4     # 0.0 - 1.0
-REVERB_DELAY = 0.03    # seconds
-
-def apply_heavy_lowpass_filter(audio, sr, cutoff=LOWPASS_CUTOFF, order=FILTER_ORDER):
+def apply_variable_lowpass(audio, sr):
+    # Random cutoff between 600Hz (heavy) and 1400Hz (mild)
+    cutoff = random.randint(600, 1400)
+    order = random.randint(8, 16)
     sos = scipy.signal.butter(order, cutoff, 'low', fs=sr, output='sos')
-    return scipy.signal.sosfilt(sos, audio)
+    filtered = scipy.signal.sosfilt(sos, audio)
+    return filtered, f"lowpass({cutoff}Hz, order={order})"
 
-def add_simple_reverb(audio, sr, decay=REVERB_DECAY, delay=REVERB_DELAY):
+def apply_variable_reverb(audio, sr):
+    decay = random.uniform(0.3, 0.6)
+    delay = random.uniform(0.02, 0.05)
     delay_samples = int(delay * sr)
     reverb = np.copy(audio)
     for i in range(delay_samples, len(audio)):
         reverb[i] += decay * reverb[i - delay_samples]
-    return reverb
+    return reverb, f"reverb(decay={decay:.2f}, delay={delay:.2f}s)"
 
-def trim_or_pad(audio, sr, target_duration = 3.0):
-    target_length = int(target_duration * sr)
-    if len(audio) > target_length:
-        return audio[:target_length]
+def apply_high_shelf_cut(audio, sr):
+    # Simple high-frequency cut
+    b, a = scipy.signal.iirfilter(4, 1000 / (sr / 2), btype='low', ftype='butter')
+    return scipy.signal.lfilter(b, a, audio), "high_shelf_cut"
+
+def randomly_muffle(audio, sr):
+    effects_applied = []
+
+    # Always apply lowpass, vary intensity
+    audio, effect = apply_variable_lowpass(audio, sr)
+    effects_applied.append(effect)
+
+    # 50% chance to add reverb
+    if random.random() < 0.5:
+        audio, effect = apply_variable_reverb(audio, sr)
+        effects_applied.append(effect)
+
+    # 40% chance to apply high-shelf attenuation
+    if random.random() < 0.4:
+        audio, effect = apply_high_shelf_cut(audio, sr)
+        effects_applied.append(effect)
+
+    return audio, effects_applied
+
+def trim_or_pad(audio, sr, target_duration=3.0):
+    target_len = int(target_duration * sr)
+    if len(audio) > target_len:
+        return audio[:target_len]
     else:
-        return np.pad(audio, (0, target_length - len(audio)))
+        return np.pad(audio, (0, target_len - len(audio)))
 
 def process_audio_file(file_path, output_path):
-        audio, sr = librosa.load(file_path, sr=None)
+    audio, sr = librosa.load(file_path, sr=None)
+    audio = trim_or_pad(audio, sr)
+    muffled, effects = randomly_muffle(audio, sr)
+    sf.write(output_path, muffled, sr)
+    print(f"✅ {os.path.basename(file_path)} → {os.path.basename(output_path)}")
+    print(f"   Effects: {', '.join(effects)}")
 
-        audio = trim_or_pad(audio, sr)
-
-        muffled = apply_heavy_lowpass_filter(audio, sr)
-        muffled_reverb = add_simple_reverb(muffled, sr)
-
-        sf.write(output_path, muffled_reverb, sr)
-        print(f"Processed: {os.path.basename(file_path)}")
-
-
-def batch_process(input_dir, output_dir, playback=False):
-
+def batch_process(input_dir, output_dir):
+    print("🎛️ Generating variable muffled audio...")
     for file_name in os.listdir(input_dir):
-        if not (file_name.lower().endswith('.mp3') or file_name.lower().endswith('.wav')):
+        if not file_name.lower().endswith(('.wav', '.mp3')):
             continue
 
         input_path = os.path.join(input_dir, file_name)
         output_path = os.path.join(output_dir, file_name.replace('.mp3', '.wav'))
-
         process_audio_file(input_path, output_path)
 
-
 if __name__ == "__main__":
-    batch_process(INPUT_DIR, OUTPUT_DIR, playback=False)
-
-    print("All files processed! Muffled audio saved to:", OUTPUT_DIR)
+    batch_process(INPUT_DIR, OUTPUT_DIR)
+    print("✅ All files processed! Muffled audio saved to:", OUTPUT_DIR)
