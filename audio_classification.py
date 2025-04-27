@@ -10,11 +10,12 @@ import librosa
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 # Load model and classifier
-classifier = joblib.load('muffled_audio_classifier.pkl')
+classifier = joblib.load('muffled_audio_classifier_live_training.pkl')
 yamnet_model = hub.load('https://tfhub.dev/google/yamnet/1')
 
+
 # Constants
-DURATION = 3  # seconds
+DURATION = 1  # seconds
 SAMPLE_RATE = 16000
 FRAME_COUNT = SAMPLE_RATE * DURATION
 SILENCE_THRESHOLD = 0.002

@@ -13,7 +13,10 @@ LONG_SENTENCE = (
     "demonstrating the agility of wild creatures in motion. "
     "This sentence, filled with energy, contains every letter in the English alphabet. "
     "Speech clarity and precision are essential for effective communication, "
-    "especially when conveying information across noisy environments or long distances."
+    "especially when conveying information across noisy environments or long distances. "
+    "Furthermore, in professional communication environments, audio intelligibility can dramatically impact the effectiveness of the message. "
+    "The ability to discern subtle variations in speech tone and pacing plays a critical role in fields such as aviation, broadcasting, and virtual conferencing. "
+    "Therefore, enhancing audio with tools and filters is not just a technical choice but a communicative necessity."
 )
 
 OUTPUT_ROOT = 'generated_audio'
@@ -35,16 +38,33 @@ def add_simple_reverb(audio, sr, decay=0.4, delay=0.03):
     return reverb
 
 def randomly_muffle(audio, sr):
-    apply_lowpass = random.choice([True, True])
-    apply_reverb = random.choice([True, True])
-    
-    print(f"🔧 Muffle Options: lowpass={apply_lowpass}, reverb={apply_reverb}")
-    
-    if apply_lowpass:
-        audio = apply_heavy_lowpass_filter(audio, sr, cutoff=900, order=16)
-    if apply_reverb:
-        audio = add_simple_reverb(audio, sr, decay=0.5, delay=0.04)
-    return audio
+    chunk_duration = 1.0  # in seconds
+    chunk_size = int(chunk_duration * sr)
+    num_chunks = len(audio) // chunk_size
+    muffled_audio = np.copy(audio)
+
+    for i in range(num_chunks):
+        start = i * chunk_size
+        end = start + chunk_size
+        chunk = muffled_audio[start:end]
+
+        if random.random() < 0.8:  # 80% chance to apply muffling
+            apply_lowpass = random.choice([True, True])
+            apply_reverb = random.choice([True, False])
+            order = random.choice([6, 8, 10, 12, 14, 16])
+            cutoff = random.randint(500, 1200)
+            decay = random.uniform(0.3, 0.6)
+            delay = random.uniform(0.02, 0.06)
+            print(f"🔧 Chunk {i}: LPF={apply_lowpass} (cutoff={cutoff}, order={order}), Reverb={apply_reverb} (decay={decay:.2f}, delay={delay:.2f})")
+
+            if apply_lowpass:
+                chunk = apply_heavy_lowpass_filter(chunk, sr, cutoff=cutoff, order=order)
+            if apply_reverb:
+                chunk = add_simple_reverb(chunk, sr, decay=decay, delay=delay)
+
+        muffled_audio[start:end] = chunk[:len(muffled_audio[start:end])]
+
+    return muffled_audio
 
 # ---------- pyttsx3 Generation ----------
 def generate_with_pyttsx3(text, out_dir):
