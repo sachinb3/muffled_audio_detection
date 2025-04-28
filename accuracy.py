@@ -9,11 +9,8 @@ def highlight_results(input_file, output_file):
        input_file (str): Path to the input CSV or text file.
        output_file (str): Path to save the formatted Excel file.
    """
-   # Step 1: Load the data into a pandas DataFrame
-   # Assumes input is a CSV with two columns: "Actual" and "Guessed"
    df = pd.read_csv(input_file)
 
-   # Step 2: Create an Excel writer to apply formatting
    wb = Workbook()
    ws = wb.active
 
@@ -22,15 +19,12 @@ def highlight_results(input_file, output_file):
    for _, row in df.iterrows():
        ws.append(row.tolist())  # Write each row of data
 
-   # Step 4: Define pastel colors for highlighting
    green_fill = PatternFill(start_color="C3E6CB", end_color="C3E6CB", fill_type="solid")  # Pastel green
    red_fill = PatternFill(start_color="F8D7DA", end_color="F8D7DA", fill_type="solid")    # Pastel red
 
-   # Step 5: Apply conditional formatting
    num_rows = df.shape[0]
    num_wrong = 0
 
-   # Step 4: Apply conditional formatting
    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
        actual = row[3].value  # Column A (Actual)
        guessed = row[4].value  # Column B (Guessed)
