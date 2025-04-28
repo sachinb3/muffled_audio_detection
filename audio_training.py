@@ -76,7 +76,7 @@ def load_dataset():
 
 # Main training flow
 if __name__ == "__main__":
-    print("🔍 Extracting 3s embeddings...")
+    print("🔍 Extracting {DURATION}s embeddings...")
     X, y = load_dataset()
 
     print("🚀 Training classifier...")
